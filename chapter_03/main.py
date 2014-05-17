@@ -16,6 +16,9 @@ def print_training_data():
 
 def training_data_correlations():
     """ Print the correlations in training data """
+    print
+    print "TRAINING DATA CORRELATIONS"
+    print "=========================="
     prostate_data = data.read_csv_prostate()
     training_data = prostate_data[prostate_data.train == 'T'].drop('train', 1)
     print training_data.corr().to_string(float_format=lambda x: '%.3f' % x)
@@ -23,30 +26,53 @@ def training_data_correlations():
 
 def training_data_regression():
     """ Run least squares regression on the training data """
+    print
+    print "TRAINING DATA REGRESSION"
+    print "========================"
     prostate_data = data.read_csv_prostate()
 
     # Select corresponding columns
-    y = prostate_data.lpsa
+    yraw = prostate_data.lpsa
     train = prostate_data.train
-    X = prostate_data.drop(['lpsa', 'train'], 1)
+    Xraw = prostate_data.drop(['lpsa', 'train'], 1)
 
     # Normalize data
-    X = (X - X.mean()) / np.sqrt(X.var())
-
-    # Select training set
-    y = y[train == 'T']
-    X = X[train == 'T']
+    Xraw = (Xraw - Xraw.mean()) / np.sqrt(Xraw.var())
 
     # Insert intercept column
-    X.insert(0, 'intercept', 1.0)
+    Xraw.insert(0, 'intercept', 1.0)
+
+
+    # Select training set
+    y = yraw[train == 'T']
+    X = Xraw[train == 'T']
+
 
     # Regresion
-    betahat, errors = regression.least_squares_regression(X.values, y)
+    model = regression.least_squares_regression(X.values, y)
 
-    result = pd.DataFrame({'Coefficient': betahat, 'Std. Error': errors}, index=X.columns)
+    result = pd.DataFrame({'Coefficient': model['betahat'], 'Std. Error': model['errors']}, index=X.columns)
     result['Z Score'] = result['Coefficient'] / result['Std. Error']
 
-    print result.to_string(float_format=lambda x: '%.2f' % x)
+    print result.to_string(float_format=lambda x: '%.3f' % x)
+
+    ytest = yraw[train == 'F']
+    Xtest = Xraw[train == 'F']
+
+    test_residual = ytest - Xtest.dot(model['betahat'])
+    test_rss = test_residual.dot(test_residual)
+
+    N,p = Xtest.shape
+
+    test_sigma2 = 1.0 / (N - p) * test_rss
+    test_sigma = np.sqrt(test_sigma2)
+
+    print
+    print 'RSS = ', test_rss
+    print 'sigma2=', test_sigma2
+    print 'avg err = %.3f' % np.average(np.abs(test_residual))
+    print "Test error:", test_sigma
+
 
 if __name__ == '__main__':
     print "Running code for chapter 3"
