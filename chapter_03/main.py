@@ -13,13 +13,6 @@ def print_title(title):
     print "=" * len(title)
 
 
-def print_training_data():
-    """ Just print the training data """
-    prostate_data = data.read_csv_prostate()
-    training_data = prostate_data[prostate_data.train == 'T'].drop('train', 1)
-    print training_data.to_string()
-
-
 def training_data_correlations():
     """ Print the correlations in training data """
     print_title("Data correlations")
