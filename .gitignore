@@ -54,3 +54,6 @@ docs/_build/
 
 .idea
 .DS_Store
+
+# Data directories
+chapter_03/data/
