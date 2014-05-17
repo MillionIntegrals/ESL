@@ -7,6 +7,12 @@ import chapter_03.data as data
 import chapter_03.regression as regression
 
 
+def print_title(title):
+    print
+    print title
+    print "=" * len(title)
+
+
 def print_training_data():
     """ Just print the training data """
     prostate_data = data.read_csv_prostate()
@@ -16,6 +22,7 @@ def print_training_data():
 
 def training_data_correlations():
     """ Print the correlations in training data """
+    print_title("Data correlations")
     prostate_data = data.read_csv_prostate()
     training_data = prostate_data[prostate_data.train == 'T'].drop('train', 1)
     print training_data.corr().to_string(float_format=lambda x: '%.3f' % x)
@@ -23,6 +30,7 @@ def training_data_correlations():
 
 def training_data_regression():
     """ Run least squares regression on the training data """
+    print_title("Least squares regression")
     prostate_data = data.read_csv_prostate()
 
     # Select corresponding columns
@@ -49,6 +57,7 @@ def training_data_regression():
     print result.to_string(float_format=lambda x: '%.2f' % x)
 
 if __name__ == '__main__':
+    print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
     print "Running code for chapter 3"
     data.download_data()
     training_data_correlations()
