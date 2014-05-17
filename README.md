@@ -1,7 +1,7 @@
 ESL
 ===
 
-Algorithms from "Elements of Statistical Learning" implemented in Python
+Algorithms from the book "Elements of Statistical Learning", implemented in Python.
 
 - Book website: http://statweb.stanford.edu/~tibs/ElemStatLearn/
 - Repository link: https://github.com/MillionIntegrals/ESL
