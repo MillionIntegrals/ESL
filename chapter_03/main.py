@@ -26,7 +26,7 @@ def training_data_regression():
     print_title("Least squares regression")
     prostate_data = data.read_csv_prostate()
 
-    # Select corresponding columns
+    # Select appropriate columns
     y = prostate_data.lpsa
     train = prostate_data.train
     X = prostate_data.drop(['lpsa', 'train'], 1)
@@ -41,7 +41,7 @@ def training_data_regression():
     # Insert intercept column
     X.insert(0, 'intercept', 1.0)
 
-    # Regresion
+    # Regression
     betahat, errors = regression.least_squares_regression(X.values, y)
 
     result = pd.DataFrame({'Coefficient': betahat, 'Std. Error': errors}, index=X.columns)
