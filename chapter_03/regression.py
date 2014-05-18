@@ -6,6 +6,13 @@ import numpy as np
 
 def least_squares_regression(X, y):
     """ Calculate least squares regression """
+    Z = np.linalg.inv(np.dot(X.T, X))
+    betahat = np.dot(np.dot(Z, X.T), y)
+    return betahat
+
+
+def least_squares_regression_with_std_errors(X, y):
+    """ Calculate least squares regression """
     # Get data shape
     N, p = X.shape
 
@@ -23,6 +30,32 @@ def least_squares_regression(X, y):
     return betahat, errors
 
 
+def best_subset_selection(X, y, size):
+    """ Find the best (in terms of square error) subset of input labels of given sample """
+    N, p = X.shape
+
+    # Remember best values
+    best_combination = None
+    best_error = None
+    best_beta = None
+
+    for combination in it.combinations(range(p-1), size):
+        # Add the intercept
+        indices = [0] + [x + 1 for x in combination]
+        Xsel = X[:, indices]
+        beta = least_squares_regression(Xsel, y)
+
+        residuals = y - np.dot(Xsel, beta)
+        rss = np.dot(residuals, residuals)
+
+        if (best_error is None) or (rss < best_error):
+            best_error = rss
+            best_combination = indices
+            best_beta = beta
+
+    return best_beta, best_combination
+
+
 def test_error(beta, X, y):
     """ Calculate the error of the model using methodology from the book  """
     residuals = y - np.dot(X, beta)
@@ -34,9 +67,3 @@ def test_error(beta, X, y):
     std_error = np.sqrt((np.average(residuals2 * residuals2) - np.average(residuals2) ** 2) / (N - 1))
 
     return avg_error, std_error
-
-
-def powerset(iterable):
-    """ powerset([1,2,3]) --> () (1,) (2,) (3,) (1,2) (1,3) (2,3) (1,2,3) """
-    s = list(iterable)
-    return it.chain.from_iterable(it.combinations(s, r) for r in range(len(s)+1))

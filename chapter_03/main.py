@@ -42,7 +42,7 @@ def training_data_regression():
     X = Xraw[train == 'T']
 
     # Regresion
-    betahat, errors = regression.least_squares_regression(X.values, y.values)
+    betahat, errors = regression.least_squares_regression_with_std_errors(X.values, y.values)
 
     result = pd.DataFrame({'Coefficient': betahat, 'Std. Error': errors}, index=X.columns)
     result['Z Score'] = result['Coefficient'] / result['Std. Error']
@@ -76,17 +76,30 @@ def shrinkage_methods():
 
     #############################################################
     # Ordinary least squares
-    betahat, errors = regression.least_squares_regression(X.values, y.values)
+    betahat = regression.least_squares_regression(X.values, y.values)
     test_error, std_error = regression.test_error(betahat, Xtest.values, ytest.values)
     ls_series = pd.Series(betahat, index=X.columns)
     ls_series.set_value('Test Error', test_error)
     ls_series.set_value('Std Error', std_error)
 
     #############################################################
-    # Print results
-    result = pd.DataFrame({'LS': ls_series})
+    # Best subset selection
+    best_subset_parameter = 2  # These parameters where chosen by the authors of the book
+    subset_betahat, best_subset = regression.best_subset_selection(X.values, y.values, best_subset_parameter)
+    test_error, std_error = regression.test_error(subset_betahat, Xtest.values[:, best_subset], ytest.values)
+    best_subset_series = pd.Series(subset_betahat, index=X.columns[best_subset])
+    best_subset_series.set_value('Test Error', test_error)
+    best_subset_series.set_value('Std Error', std_error)
 
-    print result.to_string(float_format=lambda x: '%.3f' % x)
+    #############################################################
+    # Print results
+    result = pd.DataFrame(
+        {'LS': ls_series, 'Best Subset': best_subset_series},
+        index=ls_series.index,
+        columns=['LS', 'Best Subset']
+    )
+
+    print result.to_string(float_format=lambda x: '---' if np.isnan(x) else '%.3f' % x)
 
 
 if __name__ == '__main__':
