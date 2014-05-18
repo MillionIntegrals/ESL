@@ -27,8 +27,9 @@ def indicator_classify(X, betahat):
 
 def linear_regression(X, y):
     """ Calculate linear regression classifier """
+    Y = indicator_matrix(y)
     Z = np.linalg.inv(np.dot(X.T, X))
-    betahat = np.dot(np.dot(Z, X.T), y)
+    betahat = np.dot(np.dot(Z, X.T), Y)
     return betahat
 
 

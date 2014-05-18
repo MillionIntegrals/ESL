@@ -22,7 +22,6 @@ def vowel_classification():
     X.insert(0, 'intercept', 1.0)
 
     y = train_data.y
-    Y = classification.indicator_matrix(train_data.y)
 
     Xtest = (test_data.drop('y', 1) - X_train_raw.mean()) / X_train_raw.std()
     Xtest.insert(0, 'intercept', 1.0)
@@ -32,8 +31,8 @@ def vowel_classification():
     ############################################################
     # LINEAR REGRESSION
     betahat = pd.DataFrame(
-        classification.linear_regression(X, Y),
-        columns=Y.columns, index=X.columns
+        classification.linear_regression(X, y),
+        columns=sorted(set(y)), index=X.columns
     )
 
     train_error_rate = classification.classification_error_rate(X, y, betahat)
