@@ -64,6 +64,6 @@ def test_error(beta, X, y):
     N, p = X.shape
 
     avg_error = np.average(residuals2)
-    std_error = np.sqrt((np.average(residuals2 * residuals2) - np.average(residuals2) ** 2) / (N - 1))
+    std_error = np.std(residuals2) / np.sqrt(N - 1)
 
     return avg_error, std_error
