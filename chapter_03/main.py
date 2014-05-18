@@ -16,7 +16,7 @@ def print_title(title):
 def training_data_correlations():
     """ Print the correlations in training data """
     print_title("Data correlations")
-    prostate_data = data.read_csv_prostate()
+    prostate_data = data.read_prostate_data()
     training_data = prostate_data[prostate_data.train == 'T'].drop('train', 1)
     print training_data.corr().to_string(float_format=lambda x: '%.3f' % x)
 
@@ -24,7 +24,7 @@ def training_data_correlations():
 def training_data_regression():
     """ Run least squares regression on the training data """
     print_title("Least squares regression")
-    prostate_data = data.read_csv_prostate()
+    prostate_data = data.read_prostate_data()
 
     # Select corresponding columns
     yraw = prostate_data.lpsa
@@ -53,7 +53,7 @@ def training_data_regression():
 def shrinkage_methods():
     """ Test various shrinkage methods """
     print_title("Shrinkage methods")
-    prostate_data = data.read_csv_prostate()
+    prostate_data = data.read_prostate_data()
 
     # Select corresponding columns
     yraw = prostate_data.lpsa
