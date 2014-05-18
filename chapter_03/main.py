@@ -6,11 +6,7 @@ import numpy as np
 import chapter_03.data as data
 import chapter_03.regression as regression
 
-
-def print_title(title):
-    print
-    print title
-    print "=" * len(title)
+from common.ui import print_title
 
 
 def training_data_correlations():
