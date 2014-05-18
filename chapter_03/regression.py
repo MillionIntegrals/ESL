@@ -12,7 +12,7 @@ def least_squares_regression(X, y):
 
 
 def least_squares_regression_with_std_errors(X, y):
-    """ Calculate least squares regression """
+    """ Calculate least squares regression with standard errors calculated """
     # Get data shape
     N, p = X.shape
 
@@ -57,7 +57,7 @@ def best_subset_selection(X, y, size):
 
 
 def test_error(beta, X, y):
-    """ Calculate the error of the model using methodology from the book  """
+    """ Calculate the error of the model using methodology from the book """
     residuals = y - np.dot(X, beta)
     residuals2 = residuals * residuals
 
