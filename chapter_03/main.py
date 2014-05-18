@@ -105,7 +105,6 @@ def shrinkage_methods():
 if __name__ == '__main__':
     print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
     print "Running code for chapter 3"
-    data.download_data()
     training_data_correlations()
     training_data_regression()
     shrinkage_methods()
