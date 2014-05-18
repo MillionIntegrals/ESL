@@ -41,31 +41,52 @@ def training_data_regression():
     y = yraw[train == 'T']
     X = Xraw[train == 'T']
 
-
     # Regresion
-    model = regression.least_squares_regression(X.values, y.values)
+    betahat, errors = regression.least_squares_regression(X.values, y.values)
 
-    result = pd.DataFrame({'Coefficient': model['betahat'], 'Std. Error': model['errors']}, index=X.columns)
+    result = pd.DataFrame({'Coefficient': betahat, 'Std. Error': errors}, index=X.columns)
     result['Z Score'] = result['Coefficient'] / result['Std. Error']
 
     print result.to_string(float_format=lambda x: '%.3f' % x)
 
+
+def shrinkage_methods():
+    """ Test various shrinkage methods """
+    print_title("Shrinkage methods")
+    prostate_data = data.read_csv_prostate()
+
+    # Select corresponding columns
+    yraw = prostate_data.lpsa
+    train = prostate_data.train
+    Xraw = prostate_data.drop(['lpsa', 'train'], 1)
+
+    # Normalize data
+    Xraw = (Xraw - Xraw.mean()) / np.sqrt(Xraw.var())
+
+    # Insert intercept column
+    Xraw.insert(0, 'intercept', 1.0)
+
+    # Select training set
+    y = yraw[train == 'T']
+    X = Xraw[train == 'T']
+
+    # Select test set
     ytest = yraw[train == 'F']
     Xtest = Xraw[train == 'F']
 
-    test_residual = ytest - Xtest.dot(model['betahat'])
-    test_rss = test_residual.dot(test_residual)
+    #############################################################
+    # Ordinary least squares
+    betahat, errors = regression.least_squares_regression(X.values, y.values)
+    test_error, std_error = regression.test_error(betahat, Xtest.values, ytest.values)
+    ls_series = pd.Series(betahat, index=X.columns)
+    ls_series.set_value('Test Error', test_error)
+    ls_series.set_value('Std Error', std_error)
 
-    N,p = Xtest.shape
+    #############################################################
+    # Print results
+    result = pd.DataFrame({'LS': ls_series})
 
-    test_sigma2 = 1.0 / (N - p) * test_rss
-    test_sigma = np.sqrt(test_sigma2)
-
-    print
-    print 'RSS = ', test_rss
-    print 'sigma2=', test_sigma2
-    print 'avg err = %.3f' % np.average(np.abs(test_residual))
-    print "Test error:", test_sigma
+    print result.to_string(float_format=lambda x: '%.3f' % x)
 
 
 if __name__ == '__main__':
@@ -74,3 +95,4 @@ if __name__ == '__main__':
     data.download_data()
     training_data_correlations()
     training_data_regression()
+    shrinkage_methods()
