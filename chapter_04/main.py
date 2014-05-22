@@ -15,37 +15,48 @@ def vowel_classification():
     train_data = data.read_vowel_train()
     test_data = data.read_vowel_test()
 
-    X_train_raw = train_data.drop('y', 1)
-
-    # Perform normalization in the same way on training and testing set
-    X = (X_train_raw - X_train_raw.mean()) / X_train_raw.std()
-    X.insert(0, 'intercept', 1.0)
-
+    X = train_data.drop('y', 1)
     y = train_data.y
 
-    Xtest = (test_data.drop('y', 1) - X_train_raw.mean()) / X_train_raw.std()
-    Xtest.insert(0, 'intercept', 1.0)
-
+    Xtest = test_data.drop('y', 1)
     ytest = test_data.y
+
+    # Perform normalization in the same way on training and testing set
 
     ############################################################
     # LINEAR REGRESSION
-    betahat = pd.DataFrame(
-        classification.linear_regression(X, y),
-        columns=sorted(set(y)), index=X.columns
-    )
+    X_linear_train = (X - X.mean()) / X.std()
+    X_linear_train.insert(0, 'intercept', 1.0)
 
-    train_error_rate = classification.classification_error_rate(X, y, betahat)
-    test_error_rate = classification.classification_error_rate(Xtest, ytest, betahat)
+    X_linear_test = (Xtest - X.mean()) / X.std()
+    X_linear_test.insert(0, 'intercept', 1.0)
+
+    least_squares = classification.LeastSquaresClassifier(X_linear_train, y)
+
+    train_error_rate = classification.classification_error_rate(least_squares, X_linear_train, y)
+    test_error_rate = classification.classification_error_rate(least_squares, X_linear_test, ytest)
 
     linear_regression_series = pd.Series({
         'Training Error Rate': train_error_rate,
         'Test Error Rate': test_error_rate
     }, index=['Training Error Rate', 'Test Error Rate'])
 
+    #############################################################
+    # LINEAR DISCRIMINANT ANALYSIS
+    lda = classification.LinearDiscriminantClassifier(X, y)
+
+    train_error_rate = classification.classification_error_rate(lda, X, y)
+    test_error_rate = classification.classification_error_rate(lda, Xtest, ytest)
+
+    lda_series = pd.Series({
+        'Training Error Rate': train_error_rate,
+        'Test Error Rate': test_error_rate
+    }, index=['Training Error Rate', 'Test Error Rate'])
+
     result = pd.DataFrame({
-        'Linear regression': linear_regression_series
-    })
+        'Linear regression': linear_regression_series,
+        'LDA': lda_series
+    }, columns=['Linear regression', 'LDA'])
 
     print result.T.to_string(float_format=lambda x: '%.2f' % x)
 
