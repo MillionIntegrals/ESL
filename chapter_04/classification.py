@@ -5,74 +5,79 @@ import collections
 import numpy as np
 import pandas as pd
 
+import common.base as base
 
-def indicator_matrix(y):
+
+def indicator_matrix(values):
     """ Transform a series of classes into a 0-1 classification matrix """
     # Take all the classes from y
-    classes = sorted(set(y))
+    classes = sorted(set(values))
 
-    Y = pd.DataFrame()
+    y = pd.DataFrame()
 
     # Transform classes into a classification matrix
     for cls in classes:
-        Y[cls] = y == cls
+        y[cls] = values == cls
 
-    return Y.astype(int)
+    return y.astype(int)
 
 
-def classification_error_rate(classifier, X, y):
+def classification_error_rate(classifier, coords, values):
     """ Calculate classification error rate """
-    yhat = classifier.classify(X)
-    return (yhat != y).mean()
+    yhat = classifier.classify(coords)
+    return (yhat != values).mean()
 
 
-class LeastSquaresClassifier(object):
+class LeastSquaresClassifier(base.Classification):
     """ Train linear least squares classifier """
 
-    def __init__(self, X, y):
-        self.classes = sorted(set(y))
+    def __init__(self, coords, values):
+        super(LeastSquaresClassifier, self).__init__()
 
-        Y = indicator_matrix(y)
-        Z = np.linalg.inv(np.dot(X.T, X))
+        self.classes = sorted(set(values))
+
+        value_indicator_matrix = indicator_matrix(values)
+        inverse_cov = np.linalg.inv(np.dot(coords.T, coords))
 
         self.betahat = pd.DataFrame(
-            np.dot(np.dot(Z, X.T), Y),
-            columns=self.classes, index=X.columns
+            np.dot(np.dot(inverse_cov, coords.T), value_indicator_matrix),
+            columns=self.classes, index=coords.columns
         )
 
-    def classify(self, x):
+    def classify(self, samples):
         """ Classify x """
-        Yhat = x.dot(self.betahat)
-        yhat = Yhat.apply(lambda x: x.idxmax(), axis=1)
-        return yhat
+        yhat = samples.dot(self.betahat)
+        return yhat.apply(lambda x: x.idxmax(), axis=1)
 
 
-class LinearDiscriminantClassifier(object):
+class LinearDiscriminantClassifier(base.Classification):
     """ Train linear discriminant classifier """
 
-    def __init__(self, X, y):
-        self.classes = sorted(set(y))
+    def __init__(self, coords, values):
+        super(LinearDiscriminantClassifier, self).__init__()
 
-        K = len(self.classes)
+        self.classes = sorted(set(values))
 
-        N, p = X.shape
+        k = len(self.classes)
+
+        n, p = coords.shape
 
         # Per-class probabilities
-        self.probabilities = pd.Series(collections.Counter(y)) / y.size
+        self.probabilities = pd.Series(collections.Counter(values)) / values.size
 
         # Calculate means
-        X2 = X.copy()
-        X2['y'] = y
-        self.means = X2.groupby('y').apply(lambda x: x.mean()).drop('y', 1)
+        x2 = coords.copy()
+        x2['y'] = values
+        self.means = x2.groupby('y').apply(lambda v: v.mean()).drop('y', 1)
 
         self.sigma = np.zeros([p, p])
 
-        for idx, x in X2.iterrows():
+        for idx, x in x2.iterrows():
             mu = self.means.loc[x.y]
             xv = x.drop('y') - mu
             self.sigma += np.outer(xv, xv)
 
-        self.sigma /= (N - K)
+        self.sigma /= (n - k)
         self.sigma_inv = np.linalg.inv(self.sigma)
 
         constants = {}
@@ -85,7 +90,7 @@ class LinearDiscriminantClassifier(object):
 
         self.discrimination_matrix = np.dot(self.sigma_inv, self.means.values.T)
 
-    def classify(self, x):
+    def classify(self, samples):
         """ Classify X """
-        df = pd.DataFrame(np.dot(x, self.discrimination_matrix), columns=self.classes)
+        df = pd.DataFrame(np.dot(samples, self.discrimination_matrix), columns=self.classes)
         return (df + self.constants).apply(lambda row: row.idxmax(), axis=1)
