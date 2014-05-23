@@ -79,3 +79,25 @@ class BestSubsetSelection(base.Regression):
 
     def calculate(self, samples):
         return pd.Series(np.dot(samples.values[:, self.best_combination], self.betahat), index=samples.index)
+
+
+class RidgeRegression(base.Regression):
+    """ Ridge regression algorithm """
+    def __init__(self, coords, values, ridge_lambda):
+        super(RidgeRegression, self).__init__()
+
+        self.ridge_lambda = ridge_lambda
+
+        intercept = values.mean()
+
+        values_centered = values - intercept
+
+        coords_2 = coords.drop('intercept', axis=1)
+
+        # Calculate beta coefficients
+        z = np.linalg.inv(np.dot(coords_2.T, coords_2) + self.ridge_lambda * np.eye(coords_2.shape[1]))
+        almost_betahat = np.dot(np.dot(z, coords_2.T), values_centered)
+        self.betahat = np.insert(almost_betahat, 0, intercept)
+
+    def calculate(self, samples):
+        return pd.Series(np.dot(samples, self.betahat), index=samples.index)

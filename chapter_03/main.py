@@ -96,13 +96,26 @@ def shrinkage_methods():
     best_subset_series.set_value('Std Error', std_error)
 
     #############################################################
+    # Ridge regression
+    ridge_lambda_parameter = 24.176431  # selected so that df(lambda) = 5.0
+
+    ridge_model = regression.RidgeRegression(x, y, ridge_lambda_parameter)
+    test_error, std_error = regression.test_error(ridge_model, x_test, y_test)
+
+    ridge_series = pd.Series(ridge_model.betahat, index=x.columns)
+    ridge_series.set_value('Test Error', test_error)
+    ridge_series.set_value('Std Error', std_error)
+
+
+    #############################################################
     # Print results
     result = pd.DataFrame({
         'LS': ls_series,
-        'Best Subset': best_subset_series
+        'Best Subset': best_subset_series,
+        'Ridge': ridge_series
     },
         index=ls_series.index,
-        columns=['LS', 'Best Subset']
+        columns=['LS', 'Best Subset', 'Ridge']
     )
 
     print result.to_string(float_format=lambda x: '---' if np.isnan(x) else '%.3f' % x)
