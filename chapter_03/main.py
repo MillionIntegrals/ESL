@@ -59,28 +59,28 @@ def shrinkage_methods():
     # Select corresponding columns
     yraw = prostate_data.lpsa
     train = prostate_data.train
-    Xraw = prostate_data.drop(['lpsa', 'train'], 1)
+    x_raw = prostate_data.drop(['lpsa', 'train'], 1)
 
     # Normalize data
-    Xraw = (Xraw - Xraw.mean()) / np.sqrt(Xraw.var())
+    x_raw = (x_raw - x_raw.mean()) / np.sqrt(x_raw.var())
 
     # Insert intercept column
-    Xraw.insert(0, 'intercept', 1.0)
+    x_raw.insert(0, 'intercept', 1.0)
 
     # Select training set
     y = yraw[train == 'T']
-    X = Xraw[train == 'T']
+    x = x_raw[train == 'T']
 
     # Select test set
-    ytest = yraw[train == 'F']
-    Xtest = Xraw[train == 'F']
+    y_test = yraw[train == 'F']
+    x_test = x_raw[train == 'F']
 
     #############################################################
     # Ordinary least squares
-    least_squares = regression.LeastSquaresRegression(X, y)
-    test_error, std_error = regression.test_error(least_squares, Xtest, ytest)
+    least_squares = regression.LeastSquaresRegression(x, y)
+    test_error, std_error = regression.test_error(least_squares, x_test, y_test)
 
-    ls_series = pd.Series(least_squares.betahat, index=X.columns)
+    ls_series = pd.Series(least_squares.betahat, index=x.columns)
     ls_series.set_value('Test Error', test_error)
     ls_series.set_value('Std Error', std_error)
 
@@ -88,10 +88,10 @@ def shrinkage_methods():
     # Best subset selection
     best_subset_parameter = 2  # These parameters where chosen by the authors of the book
 
-    subset_model = regression.BestSubsetSelection(X, y, best_subset_parameter)
-    test_error, std_error = regression.test_error(subset_model, Xtest, ytest)
+    subset_model = regression.BestSubsetSelection(x, y, best_subset_parameter)
+    test_error, std_error = regression.test_error(subset_model, x_test, y_test)
 
-    best_subset_series = pd.Series(subset_model.betahat, index=X.columns[subset_model.best_combination])
+    best_subset_series = pd.Series(subset_model.betahat, index=x.columns[subset_model.best_combination])
     best_subset_series.set_value('Test Error', test_error)
     best_subset_series.set_value('Std Error', std_error)
 
