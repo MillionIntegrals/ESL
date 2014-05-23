@@ -63,7 +63,7 @@ class LinearDiscriminantClassifier(base.Classification):
         n, p = coords.shape
 
         # Per-class probabilities
-        self.probabilities = pd.Series(collections.Counter(values)) / values.size
+        self.probabilities = pd.Series(collections.Counter(values), index=self.classes) / values.size
 
         # Calculate means
         x2 = coords.copy()
@@ -80,13 +80,8 @@ class LinearDiscriminantClassifier(base.Classification):
         self.sigma /= (n - k)
         self.sigma_inv = np.linalg.inv(self.sigma)
 
-        constants = {}
-
-        for cls in self.classes:
-            mu = self.means.loc[cls]
-            constants[cls] = np.log(self.probabilities[cls]) - 0.5 * np.dot(mu, np.dot(self.sigma_inv, mu))
-
-        self.constants = pd.Series(constants, index=self.classes)
+        # The second part of this expression calculates mu^T Sigma mu per each class
+        self.constants = np.log(self.probabilities) - 0.5 * (self.means * np.dot(self.sigma_inv, self.means.T).T).sum(1)
 
         self.discrimination_matrix = np.dot(self.sigma_inv, self.means.values.T)
 
