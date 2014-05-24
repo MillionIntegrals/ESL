@@ -71,7 +71,7 @@ def vowel_classification():
         'QDA': qda_series,
     }, columns=['Linear regression', 'LDA', 'QDA'])
 
-    print result.T.to_string(float_format=lambda x: '%.6f' % x)
+    print result.T.to_string(float_format=lambda x: '%.2f' % x)
 
 
 if __name__ == '__main__':
