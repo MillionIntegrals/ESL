@@ -53,12 +53,25 @@ def vowel_classification():
         'Test Error Rate': test_error_rate
     }, index=['Training Error Rate', 'Test Error Rate'])
 
+    #############################################################
+    # QUADRATIC DISCRIMINANT ANALYSIS
+    qda = classification.QuadraticDiscriminantClassifier(X, y)
+
+    train_error_rate = classification.classification_error_rate(qda, X, y)
+    test_error_rate = classification.classification_error_rate(qda, Xtest, ytest)
+
+    qda_series = pd.Series({
+        'Training Error Rate': train_error_rate,
+        'Test Error Rate': test_error_rate
+    }, index=['Training Error Rate', 'Test Error Rate'])
+
     result = pd.DataFrame({
         'Linear regression': linear_regression_series,
-        'LDA': lda_series
-    }, columns=['Linear regression', 'LDA'])
+        'LDA': lda_series,
+        'QDA': qda_series,
+    }, columns=['Linear regression', 'LDA', 'QDA'])
 
-    print result.T.to_string(float_format=lambda x: '%.2f' % x)
+    print result.T.to_string(float_format=lambda x: '%.6f' % x)
 
 
 if __name__ == '__main__':

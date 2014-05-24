@@ -89,3 +89,52 @@ class LinearDiscriminantClassifier(base.Classification):
         """ Classify X """
         df = pd.DataFrame(np.dot(samples, self.discrimination_matrix), columns=self.classes)
         return (df + self.constants).apply(lambda row: row.idxmax(), axis=1)
+
+
+class QuadraticDiscriminantClassifier(base.Classification):
+    """ Train quadratic discriminant classifier """
+
+    def __init__(self, coords, values):
+        super(QuadraticDiscriminantClassifier, self).__init__()
+
+        self.classes = sorted(set(values))
+
+        # Per-class probabilities
+        self.probabilities = pd.Series(collections.Counter(values), index=self.classes) / values.size
+
+        # Calculate means
+        x2 = coords.copy()
+        x2['y'] = values
+        self.means = x2.groupby('y').apply(lambda v: v.mean()).drop('y', 1)
+
+        self.covariance = {}
+        self.covariance_inv = {}
+        self.covariance_det = {}
+
+        for cls in self.classes:
+            selected = x2[x2['y'] == cls]
+            mu = self.means.loc[cls]
+
+            cov = np.cov(selected.drop('y', 1) - mu, rowvar=0, ddof=1)
+
+            self.covariance[cls] = cov
+            self.covariance_inv[cls] = np.linalg.inv(cov)
+            self.covariance_det[cls] = np.linalg.det(cov)
+
+        # Constant part of the discrimination function
+        self.constants = np.log(self.probabilities) - 0.5 * np.log(pd.Series(self.covariance_det, index=self.classes))
+
+    def classify(self, samples):
+        """ Classify X """
+
+        columns = {}
+
+        for cls in self.classes:
+            const = self.constants[cls]
+            mu = self.means.loc[cls]
+            xs = samples - mu
+            sigma_inv = self.covariance_inv[cls]
+            columns[cls] = const - 0.5 * (xs * np.dot(sigma_inv, xs.T).T).sum(1)
+
+        discriminant_matrix = pd.concat(columns, axis=1)
+        return discriminant_matrix.apply(lambda row: row.idxmax(), axis=1)
