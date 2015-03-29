@@ -50,8 +50,7 @@ class LeastSquaresClassifier(base.Classification):
     def classify(self, samples):
         """ Classify x """
         y_hat = samples.dot(self.betahat)
-        # TODO(jerry): check if this could be done in one go
-        return y_hat.apply(lambda x: x.idxmax(), axis=1)
+        return y_hat.idxmax(axis=1)
 
 
 class LinearDiscriminantClassifier(base.Classification):
@@ -95,8 +94,7 @@ class LinearDiscriminantClassifier(base.Classification):
     def classify(self, samples):
         """ Classify X """
         df = pd.DataFrame(np.dot(samples, self.discrimination_matrix), columns=self.classes)
-        # TODO(jerry): check if this can be done in one go
-        return (df + self.constants).apply(lambda row: row.idxmax(), axis=1)
+        return (df + self.constants).idxmax(axis=1)
 
 
 class QuadraticDiscriminantClassifier(base.Classification):
@@ -144,4 +142,4 @@ class QuadraticDiscriminantClassifier(base.Classification):
             columns[cls] = const - 0.5 * cm_math.double_product(xs, sigma_inv, xs)
 
         discriminant_matrix = pd.concat(columns, axis=1)
-        return discriminant_matrix.apply(lambda row: row.idxmax(), axis=1)
+        return discriminant_matrix.idxmax(axis=1)
