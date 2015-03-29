@@ -73,7 +73,7 @@ class LinearDiscriminantClassifier(base.Classification):
         self.sigma = np.zeros([p, p])
 
         for idx, x in x2.iterrows():
-            mu = self.means.loc[x.y]
+            mu = self.means.loc[int(x.y)]
             xv = x.drop('y') - mu
             self.sigma += np.outer(xv, xv)
 
