@@ -6,26 +6,13 @@ import numpy as np
 import pandas as pd
 
 import common.base as base
-
-
-def indicator_matrix(values):
-    """ Transform a series of classes into a 0-1 classification matrix """
-    # Take all the classes from y
-    classes = sorted(set(values))
-
-    y = pd.DataFrame()
-
-    # Transform classes into a classification matrix
-    for cls in classes:
-        y[cls] = values == cls
-
-    return y.astype(int)
+import common.math as cm_math
 
 
 def classification_error_rate(classifier, coords, values):
     """ Calculate classification error rate """
-    yhat = classifier.classify(coords)
-    return (yhat != values).mean()
+    y_hat = classifier.classify(coords)
+    return np.mean(y_hat != values)
 
 
 class LeastSquaresClassifier(base.Classification):
@@ -34,20 +21,19 @@ class LeastSquaresClassifier(base.Classification):
     def __init__(self, coords, values):
         super(LeastSquaresClassifier, self).__init__()
 
-        self.classes = sorted(set(values))
+        np_coords = coords.values
+        value_indicator_matrix = pd.get_dummies(values)
 
-        value_indicator_matrix = indicator_matrix(values)
-        inverse_cov = np.linalg.inv(np.dot(coords.T, coords))
+        self.classes = np.array(value_indicator_matrix.columns)
+        np_value_indicator_matrix = value_indicator_matrix.values
 
-        self.betahat = pd.DataFrame(
-            np.dot(np.dot(inverse_cov, coords.T), value_indicator_matrix),
-            columns=self.classes, index=coords.columns
-        )
+        inverse_cov = np.linalg.inv(np.dot(np_coords.T, np_coords))
+        self.betahat = np.dot(np.dot(inverse_cov, np_coords.T), np_value_indicator_matrix)
 
     def classify(self, samples):
         """ Classify x """
-        yhat = samples.dot(self.betahat)
-        return yhat.apply(lambda x: x.idxmax(), axis=1)
+        y_hat = np.dot(samples.values, self.betahat)
+        return pd.Series(self.classes[np.argmax(y_hat, axis=1)], index=samples.index)
 
 
 class LinearDiscriminantClassifier(base.Classification):
@@ -56,39 +42,43 @@ class LinearDiscriminantClassifier(base.Classification):
     def __init__(self, coords, values):
         super(LinearDiscriminantClassifier, self).__init__()
 
-        self.classes = sorted(set(values))
+        np_coords = coords.values
+        np_values = values.values
+
+        self.classes = np.array(sorted(set(np_values)))
 
         k = len(self.classes)
-
-        n, p = coords.shape
+        n, p = np_coords.shape
 
         # Per-class probabilities
-        self.probabilities = pd.Series(collections.Counter(values), index=self.classes) / values.size
+        self.probabilities = (
+            pd.Series(collections.Counter(np_values), index=self.classes, dtype=float).values / np_values.size
+        )
 
         # Calculate means
-        x2 = coords.copy()
-        x2['y'] = values
-        self.means = x2.groupby('y').apply(lambda v: v.mean()).drop('y', 1)
+        self.means = coords.groupby(values).mean()
+        self.sigma = np.zeros((p, p))
 
-        self.sigma = np.zeros([p, p])
-
-        for idx, x in x2.iterrows():
-            mu = self.means.loc[x.y]
-            xv = x.drop('y') - mu
+        for idx in xrange(np_coords.shape[0]):
+            mu = self.means.loc[np_values[idx]].values
+            xv = np_coords[idx] - mu
             self.sigma += np.outer(xv, xv)
 
         self.sigma /= (n - k)
         self.sigma_inv = np.linalg.inv(self.sigma)
+        self.np_means = self.means.values
 
         # The second part of this expression calculates mu^T Sigma mu per each class
-        self.constants = np.log(self.probabilities) - 0.5 * (self.means * np.dot(self.sigma_inv, self.means.T).T).sum(1)
+        self.constants = (
+            np.log(self.probabilities) - 0.5 * cm_math.double_product(self.np_means, self.sigma_inv, self.np_means)
+        )
 
-        self.discrimination_matrix = np.dot(self.sigma_inv, self.means.values.T)
+        self.discrimination_matrix = np.dot(self.sigma_inv, self.np_means.T)
 
     def classify(self, samples):
         """ Classify X """
-        df = pd.DataFrame(np.dot(samples, self.discrimination_matrix), columns=self.classes)
-        return (df + self.constants).apply(lambda row: row.idxmax(), axis=1)
+        discriminant = np.dot(samples.values, self.discrimination_matrix) + self.constants
+        return self.classes[np.argmax(discriminant, axis=1)]
 
 
 class QuadraticDiscriminantClassifier(base.Classification):
@@ -97,44 +87,48 @@ class QuadraticDiscriminantClassifier(base.Classification):
     def __init__(self, coords, values):
         super(QuadraticDiscriminantClassifier, self).__init__()
 
-        self.classes = sorted(set(values))
+        np_coords = coords.values
+        np_values = values.values
+
+        self.classes = np.array(sorted(set(values)))
+        self.class_idx = dict(zip(self.classes, xrange(len(self.classes))))
+
+        self.n = len(self.classes)
 
         # Per-class probabilities
-        self.probabilities = pd.Series(collections.Counter(values), index=self.classes) / values.size
+        self.probabilities = (
+            pd.Series(collections.Counter(values), index=self.classes, dtype=float).values / values.size
+        )
 
         # Calculate means
-        x2 = coords.copy()
-        x2['y'] = values
-        self.means = x2.groupby('y').apply(lambda v: v.mean()).drop('y', 1)
+        self.means = coords.groupby(values).mean().values
 
         self.covariance = {}
         self.covariance_inv = {}
-        self.covariance_det = {}
+        self.covariance_det = np.zeros(self.n)
 
-        for cls in self.classes:
-            selected = x2[x2['y'] == cls]
-            mu = self.means.loc[cls]
+        for idx, cls in enumerate(self.classes):
+            selected = np_coords[np_values == cls]
+            mu = self.means[idx]
 
-            cov = np.cov(selected.drop('y', 1) - mu, rowvar=0, ddof=1)
+            cov = np.cov(selected - mu, rowvar=0, ddof=1)
 
             self.covariance[cls] = cov
             self.covariance_inv[cls] = np.linalg.inv(cov)
-            self.covariance_det[cls] = np.linalg.det(cov)
+            self.covariance_det[idx] = np.linalg.det(cov)
 
         # Constant part of the discrimination function
-        self.constants = np.log(self.probabilities) - 0.5 * np.log(pd.Series(self.covariance_det, index=self.classes))
+        self.constants = (np.log(self.probabilities) - 0.5 * np.log(self.covariance_det))
 
     def classify(self, samples):
         """ Classify X """
+        columns = np.zeros((len(samples), self.n))
 
-        columns = {}
-
-        for cls in self.classes:
-            const = self.constants[cls]
-            mu = self.means.loc[cls]
+        for idx, cls in enumerate(self.classes):
+            const = self.constants[idx]
+            mu = self.means[idx]
             xs = samples - mu
             sigma_inv = self.covariance_inv[cls]
-            columns[cls] = const - 0.5 * (xs * np.dot(sigma_inv, xs.T).T).sum(1)
+            columns[:, idx] = const - 0.5 * cm_math.double_product(xs, sigma_inv, xs)
 
-        discriminant_matrix = pd.concat(columns, axis=1)
-        return discriminant_matrix.apply(lambda row: row.idxmax(), axis=1)
+        return self.classes[np.argmax(columns, axis=1)]

@@ -1,79 +1,79 @@
 #!/usr/bin/env python
 
 import pandas as pd
-import numpy as np
 
 import chapter_03.data as data
 import chapter_03.regression as regression
+import common.formatters as formatters
+import common.math as cm_math
+import common.profiling as profiling
 
 from common.ui import print_title
 
 
-def training_data_correlations():
+def training_data_correlations(prostate_data):
     """ Print the correlations in training data """
     print_title("Data correlations")
-    prostate_data = data.read_prostate_data()
-    training_data = prostate_data[prostate_data.train == 'T'].drop('train', 1)
-    print training_data.corr().to_string(float_format=lambda x: '%.3f' % x)
+    training_data = prostate_data[prostate_data.train == 'T'].drop('train', axis=1)
+    print training_data.corr().to_string(float_format=formatters.float_precision_formatter(3))
 
 
-def training_data_regression():
+def training_data_regression(prostate_data):
     """ Run least squares regression on the training data """
     print_title("Least squares regression")
-    prostate_data = data.read_prostate_data()
 
     # Select corresponding columns
-    yraw = prostate_data.lpsa
-    train = prostate_data.train
-    Xraw = prostate_data.drop(['lpsa', 'train'], 1)
+    y_raw = prostate_data.lpsa
+    x_raw = prostate_data.drop(['lpsa', 'train'], axis=1)
+
+    train_indicator = prostate_data.train
 
     # Normalize data
-    Xraw = (Xraw - Xraw.mean()) / np.sqrt(Xraw.var())
-
-    # Insert intercept column
-    Xraw.insert(0, 'intercept', 1.0)
-
-    # Select training set
-    y = yraw[train == 'T']
-    X = Xraw[train == 'T']
-
-    # Regresion
-    least_squares = regression.LeastSquaresRegression(X, y)
-    # betahat, errors = regression.least_squares_regression_with_std_errors(X.values, y.values)
-
-    result = pd.DataFrame({
-        'Coefficient': least_squares.betahat,
-        'Std. Error': least_squares.std_errors
-    }, index=X.columns)
-
-    result['Z Score'] = result['Coefficient'] / result['Std. Error']
-
-    print result.to_string(float_format=lambda x: '%.2f' % x)
-
-
-def shrinkage_methods():
-    """ Test various shrinkage methods """
-    print_title("Shrinkage methods")
-    prostate_data = data.read_prostate_data()
-
-    # Select corresponding columns
-    yraw = prostate_data.lpsa
-    train = prostate_data.train
-    x_raw = prostate_data.drop(['lpsa', 'train'], 1)
-
-    # Normalize data
-    x_raw = (x_raw - x_raw.mean()) / np.sqrt(x_raw.var())
+    x_raw = cm_math.normalize(x_raw)
 
     # Insert intercept column
     x_raw.insert(0, 'intercept', 1.0)
 
     # Select training set
-    y = yraw[train == 'T']
-    x = x_raw[train == 'T']
+    y = y_raw[train_indicator == 'T']
+    x = x_raw[train_indicator == 'T']
+
+    # Regression
+    least_squares = regression.LeastSquaresRegression(x, y)
+
+    result = pd.DataFrame({
+        'Coefficient': least_squares.betahat,
+        'Std. Error': least_squares.std_errors
+    }, index=x.columns)
+
+    result['Z Score'] = result['Coefficient'] / result['Std. Error']
+
+    print result.to_string(float_format=formatters.float_precision_formatter(2))
+
+
+def shrinkage_methods(prostate_data):
+    """ Test various shrinkage methods """
+    print_title("Shrinkage methods")
+
+    # Select corresponding columns
+    y_raw = prostate_data.lpsa
+    x_raw = prostate_data.drop(['lpsa', 'train'], axis=1)
+
+    train_indicator = prostate_data.train
+
+    # Normalize data
+    x_raw = cm_math.normalize(x_raw)
+
+    # Insert intercept column
+    x_raw.insert(0, 'intercept', 1.0)
+
+    # Select training set
+    y = y_raw[train_indicator == 'T']
+    x = x_raw[train_indicator == 'T']
 
     # Select test set
-    y_test = yraw[train == 'F']
-    x_test = x_raw[train == 'F']
+    y_test = y_raw[train_indicator == 'F']
+    x_test = x_raw[train_indicator == 'F']
 
     #############################################################
     # Ordinary least squares
@@ -106,7 +106,6 @@ def shrinkage_methods():
     ridge_series.set_value('Test Error', test_error)
     ridge_series.set_value('Std Error', std_error)
 
-
     #############################################################
     # Print results
     result = pd.DataFrame({
@@ -118,12 +117,24 @@ def shrinkage_methods():
         columns=['LS', 'Best Subset', 'Ridge']
     )
 
-    print result.to_string(float_format=lambda x: '---' if np.isnan(x) else '%.3f' % x)
+    print result.to_string(float_format=formatters.float_precision_formatter(3))
+
+
+def main():
+    """ Main function to run """
+    print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
+    print "Running code for chapter 3"
+    prostate_data = data.read_prostate_data()
+
+    with profiling.measure_time('Training data correlations', precision=4):
+        training_data_correlations(prostate_data)
+
+    with profiling.measure_time('Training data regression', precision=4):
+        training_data_regression(prostate_data)
+
+    with profiling.measure_time('Shrinkage methods', precision=4):
+        shrinkage_methods(prostate_data)
 
 
 if __name__ == '__main__':
-    print ">>>>>>>>>>>>>>>>>>>>>>>>>>"
-    print "Running code for chapter 3"
-    training_data_correlations()
-    training_data_regression()
-    shrinkage_methods()
+    main()

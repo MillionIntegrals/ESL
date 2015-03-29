@@ -10,7 +10,6 @@ PROSTATE_DATA_NAME = 'prostate.data'
 
 def read_prostate_data():
     """ Read the prostate.data file accompanying the book and return it as a dataframe """
-    cdata.download_data_file(PROSTATE_DATA_NAME)
-    filename = cdata.data_path(PROSTATE_DATA_NAME)
+    filename = cdata.download_data_file(PROSTATE_DATA_NAME)
     return pd.read_csv(filename, delimiter='\t', index_col=0)
 

@@ -29,12 +29,15 @@ class LeastSquaresRegression(base.Regression):
         # Get data shape
         n, p = coords.shape
 
+        np_coords = coords.values
+        np_values = values.values
+
         # Calculate beta coefficients
-        z = np.linalg.inv(np.dot(coords.T, coords))
-        self.betahat = np.dot(np.dot(z, coords.T), values)
+        z = np.linalg.inv(np.dot(np_coords.T, np_coords))
+        self.betahat = np.dot(np.dot(z, np_coords.T), np_values)
 
         # Calculate standard errors
-        epsilon = values - np.dot(coords, self.betahat)
+        epsilon = np_values - np.dot(np_coords, self.betahat)
         self.rss = np.dot(epsilon, epsilon)
 
         sigma2 = 1.0 / (n - p) * self.rss
@@ -42,7 +45,11 @@ class LeastSquaresRegression(base.Regression):
         self.std_errors = self.sigma * np.sqrt(np.matrix.diagonal(z))
 
     def calculate(self, samples):
-        return pd.Series(np.dot(samples, self.betahat), index=samples.index)
+        """ Calculate least squares linear regression """
+        return pd.Series(
+            np.dot(samples.values, self.betahat),
+            index=samples.index
+        )
 
 
 class BestSubsetSelection(base.Regression):
@@ -53,20 +60,24 @@ class BestSubsetSelection(base.Regression):
 
         n, p = coords.shape
 
+        np_coords = coords.values
+        np_values = values.values
+
         # Remember best values
         best_combination = None
         best_error = None
         best_beta = None
 
-        for combination in it.combinations(range(p-1), size):
+        # Test all the subsets of given size
+        for combination in it.combinations(xrange(p-1), size):
             # Add the intercept
             indices = [0] + [x + 1 for x in combination]
-            x_sel = coords.iloc[:, indices]
+            x_sel = np_coords[:, indices]
 
             z = np.linalg.inv(np.dot(x_sel.T, x_sel))
-            beta = np.dot(np.dot(z, x_sel.T), values)
+            beta = np.dot(np.dot(z, x_sel.T), np_values)
 
-            residuals = values - np.dot(x_sel, beta)
+            residuals = np_values - np.dot(x_sel, beta)
             rss = np.dot(residuals, residuals)
 
             if (best_error is None) or (rss < best_error):
@@ -78,7 +89,11 @@ class BestSubsetSelection(base.Regression):
         self.best_combination = best_combination
 
     def calculate(self, samples):
-        return pd.Series(np.dot(samples.values[:, self.best_combination], self.betahat), index=samples.index)
+        """ Calculate best subset regression """
+        return pd.Series(
+            np.dot(samples.values[:, self.best_combination], self.betahat),
+            index=samples.index
+        )
 
 
 class RidgeRegression(base.Regression):
@@ -86,13 +101,15 @@ class RidgeRegression(base.Regression):
     def __init__(self, coords, values, ridge_lambda):
         super(RidgeRegression, self).__init__()
 
+        np_values = values.values
+
         self.ridge_lambda = ridge_lambda
 
-        intercept = values.mean()
+        intercept = np.mean(np_values)
 
-        values_centered = values - intercept
+        values_centered = np_values - intercept
 
-        coords_2 = coords.drop('intercept', axis=1)
+        coords_2 = coords.drop('intercept', axis=1).values
 
         # Calculate beta coefficients
         z = np.linalg.inv(np.dot(coords_2.T, coords_2) + self.ridge_lambda * np.eye(coords_2.shape[1]))
@@ -100,4 +117,8 @@ class RidgeRegression(base.Regression):
         self.betahat = np.insert(almost_betahat, 0, intercept)
 
     def calculate(self, samples):
-        return pd.Series(np.dot(samples, self.betahat), index=samples.index)
+        """ Calculate ridge regression """
+        return pd.Series(
+            np.dot(samples.values, self.betahat),
+            index=samples.index
+        )
