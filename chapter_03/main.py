@@ -5,6 +5,7 @@ import numpy as np
 
 import chapter_03.data as data
 import chapter_03.regression as regression
+import common.formatters as formatters
 
 from common.ui import print_title
 
@@ -14,7 +15,7 @@ def training_data_correlations():
     print_title("Data correlations")
     prostate_data = data.read_prostate_data()
     training_data = prostate_data[prostate_data.train == 'T'].drop('train', 1)
-    print training_data.corr().to_string(float_format=lambda x: '%.3f' % x)
+    print training_data.corr().to_string(float_format=formatters.float_precision_formatter(3))
 
 
 def training_data_regression():
@@ -48,7 +49,7 @@ def training_data_regression():
 
     result['Z Score'] = result['Coefficient'] / result['Std. Error']
 
-    print result.to_string(float_format=lambda x: '%.2f' % x)
+    print result.to_string(float_format=formatters.float_precision_formatter(2))
 
 
 def shrinkage_methods():
@@ -118,7 +119,7 @@ def shrinkage_methods():
         columns=['LS', 'Best Subset', 'Ridge']
     )
 
-    print result.to_string(float_format=lambda x: '---' if np.isnan(x) else '%.3f' % x)
+    print result.to_string(float_format=formatters.float_precision_formatter(3))
 
 
 if __name__ == '__main__':
