@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 
 import pandas as pd
-import numpy as np
 
 import chapter_03.data as data
 import chapter_03.regression as regression
 import common.formatters as formatters
 import common.math as cm_math
+import common.profiling as profiling
 
 from common.ui import print_title
 
@@ -126,9 +126,14 @@ def main():
     print "Running code for chapter 3"
     prostate_data = data.read_prostate_data()
 
-    training_data_correlations(prostate_data)
-    training_data_regression(prostate_data)
-    shrinkage_methods(prostate_data)
+    with profiling.measure_time('Training data correlations', precision=4):
+        training_data_correlations(prostate_data)
+
+    with profiling.measure_time('Training data regression', precision=4):
+        training_data_regression(prostate_data)
+
+    with profiling.measure_time('Shrinkage methods', precision=4):
+        shrinkage_methods(prostate_data)
 
 
 if __name__ == '__main__':
