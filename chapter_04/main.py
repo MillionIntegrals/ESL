@@ -5,12 +5,14 @@ import pandas as pd
 import chapter_04.data as data
 import chapter_04.classification as classification
 
-from common.ui import print_title
+import common.profiling as profiling
+import common.ui as ui
+import common.math as cm_math
 
 
 def vowel_classification(train_data, test_data):
     """ Run the vowel classification algorithms """
-    print_title('Vowel classification')
+    ui.print_title('Vowel classification')
 
     x_train = train_data.drop('y', 1)
     y_train = train_data.y
@@ -22,16 +24,17 @@ def vowel_classification(train_data, test_data):
 
     ############################################################
     # LINEAR REGRESSION
-    x_linear_train = (x_train - x_train.mean()) / x_train.std()
+    x_linear_train = cm_math.normalize(x_train)
     x_linear_train.insert(0, 'intercept', 1.0)
 
-    x_linear_test = (x_test - x_train.mean()) / x_train.std()
+    x_linear_test = cm_math.normalize(x_test, x_train)
     x_linear_test.insert(0, 'intercept', 1.0)
 
-    least_squares = classification.LeastSquaresClassifier(x_linear_train, y_train)
+    with profiling.measure_time(label='Least squares', precision=4):
+        least_squares = classification.LeastSquaresClassifier(x_linear_train, y_train)
 
-    train_error_rate = classification.classification_error_rate(least_squares, x_linear_train, y_train)
-    test_error_rate = classification.classification_error_rate(least_squares, x_linear_test, y_test)
+        train_error_rate = classification.classification_error_rate(least_squares, x_linear_train, y_train)
+        test_error_rate = classification.classification_error_rate(least_squares, x_linear_test, y_test)
 
     linear_regression_series = pd.Series({
         'Training Error Rate': train_error_rate,
@@ -40,10 +43,12 @@ def vowel_classification(train_data, test_data):
 
     #############################################################
     # LINEAR DISCRIMINANT ANALYSIS
-    lda = classification.LinearDiscriminantClassifier(x_train, y_train)
+    with profiling.measure_time(label='LDA', precision=4):
+    # with profiling.line_profiling(classification.LinearDiscriminantClassifier.__init__, classification.LinearDiscriminantClassifier.classify):
+        lda = classification.LinearDiscriminantClassifier(x_train, y_train)
 
-    train_error_rate = classification.classification_error_rate(lda, x_train, y_train)
-    test_error_rate = classification.classification_error_rate(lda, x_test, y_test)
+        train_error_rate = classification.classification_error_rate(lda, x_train, y_train)
+        test_error_rate = classification.classification_error_rate(lda, x_test, y_test)
 
     lda_series = pd.Series({
         'Training Error Rate': train_error_rate,
@@ -52,10 +57,11 @@ def vowel_classification(train_data, test_data):
 
     #############################################################
     # QUADRATIC DISCRIMINANT ANALYSIS
-    qda = classification.QuadraticDiscriminantClassifier(x_train, y_train)
+    with profiling.measure_time(label='QDA', precision=4):
+        qda = classification.QuadraticDiscriminantClassifier(x_train, y_train)
 
-    train_error_rate = classification.classification_error_rate(qda, x_train, y_train)
-    test_error_rate = classification.classification_error_rate(qda, x_test, y_test)
+        train_error_rate = classification.classification_error_rate(qda, x_train, y_train)
+        test_error_rate = classification.classification_error_rate(qda, x_test, y_test)
 
     qda_series = pd.Series({
         'Training Error Rate': train_error_rate,
@@ -78,7 +84,8 @@ def main():
     train_data = data.read_vowel_train()
     test_data = data.read_vowel_test()
 
-    vowel_classification(train_data, test_data)
+    with profiling.measure_time(label='Vowel classification', precision=4):
+        vowel_classification(train_data, test_data)
 
 
 if __name__ == '__main__':

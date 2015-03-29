@@ -3,9 +3,12 @@ __author__ = 'jrx'
 import numpy as np
 
 
-def normalize(m):
+def normalize(m, normalizant=None):
     """ Normalize the data """
-    return (m - m.mean()) / m.std()
+    if normalizant is None:
+        normalizant = m
+
+    return (m - np.mean(normalizant)) / np.std(normalizant)
 
 
 def double_product(x, m, y):
