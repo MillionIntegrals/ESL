@@ -89,6 +89,7 @@ class BestSubsetSelection(base.Regression):
         self.best_combination = best_combination
 
     def calculate(self, samples):
+        """ Calculate best subset regression """
         return pd.Series(
             np.dot(samples.values[:, self.best_combination], self.betahat),
             index=samples.index
@@ -116,6 +117,7 @@ class RidgeRegression(base.Regression):
         self.betahat = np.insert(almost_betahat, 0, intercept)
 
     def calculate(self, samples):
+        """ Calculate ridge regression """
         return pd.Series(
             np.dot(samples.values, self.betahat),
             index=samples.index
